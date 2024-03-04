@@ -1,29 +1,21 @@
 import App from "app";
 import {render, screen, waitFor} from "@testing-library/react";
-import {submitForm} from 'api';
 import * as React from 'react'
 import user from "@testing-library/user-event";
+import {server} from "../../tests/server";
 
 const data = {
     food: "Les pâtes",
     drink: "Bière"
 };
 
-jest.mock('../api', () => ({
-    submitForm: jest.fn(),
-}));
-
-const mockSubmitFormThrowError = () => {
-    submitForm.mockRejectedValueOnce({message: "les champs food et drink sont obligatoires"});
-};
-
-const mockSubmitForm = () => {
-    submitForm.mockResolvedValueOnce({message: "success"});
-
-}
 afterEach(() => {
-    jest.clearAllMocks();
+    server.resetHandlers()
 });
+
+beforeAll(() => server.listen());
+
+afterAll(() => server.close());
 
 test('Cas passant', async () => {
     render(<App/>);
@@ -64,7 +56,6 @@ test('Cas passant', async () => {
     expect(screen.getByRole('link')).toHaveTextContent(/Go back/i);
     let confirm = screen.getByRole('button');
     expect(confirm).toHaveTextContent(/Confirm/i);
-    mockSubmitForm();
     user.click(confirm);
     await waitFor(() => expect(screen.getByRole('heading')).toHaveTextContent('Congrats. You did it.'));
     let goHome = screen.getByRole('link');
@@ -111,7 +102,6 @@ test('Cas non passant', async () => {
         expect(screen.getByRole('link')).toHaveTextContent(/Go back/i);
         let confirm = screen.getByRole('button');
         expect(confirm).toHaveTextContent(/Confirm/i);
-        mockSubmitFormThrowError();
         user.click(confirm);
         await waitFor(() => expect(screen.getByText(/Oh no. There was an error./i)).toBeInTheDocument());
         expect(screen.getByText(/les champs food et drink sont obligatoires/i)).toBeInTheDocument();
